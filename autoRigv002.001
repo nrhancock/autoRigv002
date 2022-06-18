@@ -1,0 +1,182 @@
+# ik/fk arm auto rig v002
+# Nate Hancock
+# created 6/14/2022
+
+import maya.cmds as cmds
+import pymel.core as pm
+import maya.mel as mel
+import math
+
+print("Initializing...")
+
+
+# clean up an object
+
+def nrh_cleanup(obj):
+    # delete object history
+    deleteHistory = cmds.delete(constructionHistory=True)
+    # freeze objects transforms
+    freezeTransforms = cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
+    # center pivot
+    sel = cmds.ls(selection=True)
+    for obj in sel:
+        cmds.xform(obj, centerPivots=True)
+
+debug = False
+class armRig:
+    print("Class call successful")
+
+    def __init__(self, namespace=None):
+        if namespace!=None:
+            self.namespace=namespace+':'
+        else:
+            self.namespace=None
+
+
+        self.window = None
+        self.windowsName = ('armrig_UI')
+        self.title = ('arm auto rigger')
+        #self.window_height = 300
+        #self.window_width = 400
+
+        self.create_arm_ui()
+        print ('call UI')
+
+    def create_arm_ui(self):
+
+        if pm.window(self.windowsName, ex=True):
+            pm.deleteUI(self.windowsName)
+
+        window = cmds.window(self.windowsName, mm=True, bgc=(0.0, 0.1, 0.1))
+        cmds.rowColumnLayout(nc=2)
+        pm.checkBox(label='Asymmetrical Placement')
+        pm.checkBox(label='Symmetrical Placement')
+
+        cmds.columnLayout('Main', cal='left')
+        cmds.button(w=300, ebg=True, bgc=(0, 0, 0), l='Create Locators for Arm Joint Placement', command=self.create_arm_locators)
+
+        cmds.columnLayout('postLayout', cal='left')
+        cmds.button(w=300, ebg=True, bgc=(0, 0, 0), l='Create Joints Based on Locators')
+        cmds.button(w=300, ebg=True, bgc=(0, 0, 0), l='Create Control on Selected')
+
+
+        cmds.showWindow(self.windowsName)
+
+    # create_arm_ui()
+
+    # start off by creating 4 locators that are parented to a locators
+    # these locators will be for placing joints and will replaced with joints
+    # create joints on locators in order clavicle, shoulder, elbow, wrist
+    def create_arm_locators(self):
+        """Function that create locators necessary to for the placement of the arm joints"""
+
+        count = 1
+
+        # create locators
+
+        clavicleLoc = pm.spaceLocator(name='clavicle_Loc', p=(0, 0, 0))
+        nrh_cleanup(clavicleLoc)
+        armLoc_group = pm.group(n='arm_Loc_Grp')
+        shoulderLoc = pm.spaceLocator(name='shoulder_Loc', p=(2, 0, -0.5))
+        nrh_cleanup(shoulderLoc)
+        elbowLoc = pm.spaceLocator(name='elbow_Loc', p=(5, 0, -1.5))
+        nrh_cleanup(elbowLoc)
+        wristLoc = pm.spaceLocator(name='wrist_Loc', p=(9, 0, -0.5))
+        nrh_cleanup(wristLoc)
+
+        pm.parent(wristLoc, elbowLoc)
+        pm.parent(elbowLoc, shoulderLoc)
+        pm.parent(shoulderLoc, clavicleLoc)
+        pm.ls(selection=False)
+
+        pm.xform(armLoc_group, relative= True, rotation=(0.0, 0.0, -35.0), translation=(3.188069, 10.831871, 0.0))
+        # nrhCleanup(armLoc_group)
+
+        # create a list of variables to grab and replace with joints
+        arm_position_locator = (clavicleLoc, shoulderLoc, elbowLoc, wristLoc)
+
+        return arm_position_locator
+
+        # will eventually want to have the locators different colors as to help
+        # differentiate sides and which limb is being laid out
+
+        # add in modularity so if mesh  is not symmetrical they can pose and replace
+        # both sides with locators or if symmetrical then the can simple have it build for them automatically
+
+        # leftArm_locators = create_arm_locators()
+        print('Left arm locators created')
+
+    # replace locators with joint chain
+    def create_arm_joints(items, *args):
+        #model function for replacement
+        '''test_locator = pm.spaceLocator(name= 'Test 01')
+        pm.xform(test_locator, t = (2, 5, 0))
+        pm.select(cl= True)
+
+        position_output = pm.pointPosition(test_locator)
+
+        print (position_output)
+
+        test_joint = pm.joint(name = 'Test Jnt', position = position_output)
+
+        pm.delete (test_locator)'''
+
+        count = 1
+        for locators in items:
+            pm.joint(p=(0,0,0))
+
+    # arm_joints = create_arm_joints(leftArm_locators)
+
+    # create a single chain ik handle for clavicle
+    # then create 2 more joint chain off the new joints with IK and FK names instead on Jnt
+    # parent these new joints to the main arm joint system (shoulder, elbow, wrist)
+
+    # set the prefered angle for the system
+
+    # create controls for ik and fk rigs respectively
+    # make sure it is scalable
+    # make sure IK is not flipping and has pole vector add in reverse node and attributes for toggle
+    # make sure rig has stretch and attributes hide stuff correctly and swap correctly
+
+    # pose test
+
+end_arm_class = armRig()
+
+'''
+# reference functions
+
+def rename_joints(joint_chain, ori, name, suffix):
+    count = 1
+    for current_chain in joint_chain:
+        new_name = '{0}_{1}_{2}_{3}'.format(ori, name, count, suffix)
+        current_chain.rename(new_name)
+
+        count += 1
+
+    #this is a function for creating the FK controls
+
+def nrhAutoRig():
+    joint_chain = pm.ls(sl=True, dag=True)
+    last_icon = None
+    control_icons = []
+    for current_joint in joint_chain[0:-1]:
+        print (current_joint)
+        current_icon = pm.circle(radius=4, normal=[1, 0, 0])[0]
+        local_pad = pm.group(n='fkCtrl_offset')
+        waste_icon = pm.parentConstraint(current_joint, local_pad)
+        pm.delete(waste_icon)
+
+        if last_icon:
+            pm.parent(local_pad, last_icon)
+
+        #connect the control back to the joint
+        pm.orientConstraint(current_icon, current_joint)
+
+        last_icon = current_icon
+
+        control_icons.append(current_icon)
+
+    pm.select(control_icons, r=True)
+'''
+
+# later use for this script could be modular so I can create any number of locators and then use it to place a joint chain with multiple lengths and still have a functioning rig system
