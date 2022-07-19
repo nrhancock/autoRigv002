@@ -1,7 +1,7 @@
 # ik/fk arm auto rig v002
 # Nate Hancock
 # created 6/14/2022
-#last update  07/13/2022
+#last update  07/19/2022
 
 from maya import cmds, OpenMaya
 import pymel.core as pm
@@ -458,7 +458,7 @@ class armRig:
 
         '''takes the 3 joint in the chain (the shoulder in this case) and orients joints and sets secondary axis'''
         # pm.parent(joint_list[2], world=True)
-        pm.joint(joint_list[2], e=True, ch=True, oj='xyz', secondaryAxisOrient='yup')
+        pm.joint(joint_list[2], e=True, ch=True, oj='xyz')
 
         '''Set pref angle for the joints'''
 
@@ -466,9 +466,9 @@ class armRig:
         pm.joint(joint_list[2], edit=True, children=True, setPreferredAngles=True)
         pm.rotate(joint_list[2], 0, 50, 0, r=1, os=1, fo=1)
 
-        pm.rotate(joint_list[3], 0, -50, 0, r=1, os=1, fo=1)
-        pm.joint(joint_list[3], edit=True, children=True, setPreferredAngles=True)
-        pm.rotate(joint_list[3], 0, 50, 0, r=1, os=1, fo=1)
+        # pm.rotate(joint_list[3], 0, -50, 0, r=1, os=1, fo=1)
+        # pm.joint(joint_list[3], edit=True, children=True, setPreferredAngles=True)
+        # pm.rotate(joint_list[3], 0, 50, 0, r=1, os=1, fo=1)
 
         '''create a single chain ik handle for clavicle
         then create 2 more joint chain off the new joints with IK and FK names instead on Jnt
@@ -506,9 +506,6 @@ class armRig:
 
         ikarm_grp = []
         fkarm_grp = []
-
-        # clavJnt_grp = pm.group(joint_list[0], name='l_clav_Jnt_Grp')
-        # shoulderJnt_grp = pm.group(joint_list[2], name='l_arm_Jnt_Grp')
 
         ikshoulder = ikarm_grp.append(pm.duplicate(joint_list[2], parentOnly=True, name='l_shoulder_ik'))
         ikelbow = ikarm_grp.append(pm.duplicate(joint_list[3], parentOnly=True, name='l_elbow_ik'))
@@ -668,12 +665,9 @@ class armRig:
 
     def ikfk_setup(self):
         pass
-    '''create controls for ik and fk rigs respectively
-    make sure it is scalable
-    make sure IK is not flipping and has pole vector add in reverse node and attributes for toggle
-    make sure rig has stretch and attributes hide stuff correctly and swap correctly
-    then set up attributes for easy switch'''
 
 
 
 run_arm_class = armRig()
+
+'''source: nurbCube.mel, arrowControl.mel, arrowControl2.mel, nrhArmAutorigv004.py'''
